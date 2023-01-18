@@ -19,6 +19,16 @@ pub fn index_entry(entry: TestEntry) -> ExternResult<()> {
     Ok(())
 }
 
+#[hdk_extern]
+pub fn index_as_record(entry: TestEntry) -> ExternResult<()> {
+    let action_hash = create_entry(&EntryTypes::TestEntry(entry.clone()))?;
+    let record = get(action_hash, GetOptions::latest())?.unwrap();
+
+    hc_time_index::index_entry(String::from("test_index"), record, LinkTag::new("test"), LinkTypes::Index, LinkTypes::Path)
+        .map_err(|error| utils::err(&format!("{}", error)))?;
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize, SerializedBytes, Debug)]
 pub struct GetAddressesSinceInput {
     pub index: String,

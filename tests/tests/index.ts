@@ -267,6 +267,68 @@ test("test simple index", async (t) => {
   await scenario.cleanUp();
 })
 
+
+test("test simple index with Records", async (t) => {
+  const scenario = new Scenario();
+  try {
+    const alice = await scenario.addPlayerWithApp(appBundle);
+
+    var dateOffset = 10; //10ms
+    var date = new Date();
+    date.setTime(date.getTime() - dateOffset);
+
+    //Index entry
+    await alice.cells[0].callZome({
+      zome_name: "test_zome", 
+      fn_name: "index_as_record",
+      payload: {title: "A test index", created: new Date().toISOString()}
+    })
+    await alice.cells[0].callZome({
+      zome_name: "test_zome", 
+      fn_name: "index_as_record",
+      payload: {title: "A test index2", created: date.toISOString()}
+    })
+
+    //Create another index for one day ago
+    var dateOffset = (24*60*60*1000); //1 day ago
+    var date = new Date();
+    date.setTime(date.getTime() - dateOffset);
+    await alice.cells[0].callZome({
+      zome_name: "test_zome", 
+      fn_name: "index_as_record",
+      payload: {title: "A test index3", created: date.toISOString()}
+    })
+
+    let results_between = await alice.cells[0].callZome({
+      zome_name: "test_zome", 
+      fn_name: "get_indexes_for_time_span",
+      payload: {index: "test_index", from: date.toISOString(), until: new Date().toISOString(), limit: 10}
+    })
+    console.log("Got results between", results_between);
+    //@ts-ignore
+    t.deepEqual(results_between.length, 1);
+
+    //Create another index for one day ago
+    var dateOffset = (24*60*60*1000) / 2; //12 hr ago
+    var date = new Date();
+    date.setTime(date.getTime() - dateOffset);
+
+    let results_betwee2: any = await alice.cells[0].callZome({
+      zome_name: "test_zome", 
+      fn_name: "get_indexes_for_time_span",
+      payload: {index: "test_index", from: date.toISOString(), until: new Date().toISOString(), limit: 10}
+    })
+    console.log("Got results between", results_betwee2);
+    //@ts-ignore
+    t.deepEqual(results_betwee2.length, 1);
+    t.deepEqual(results_betwee2.links.length, 3);
+
+  } catch (error) {
+    console.error("error", error);
+  }
+  await scenario.cleanUp();
+})
+
 test("test delete", async (t) => {
   const scenario = new Scenario();
   try {
