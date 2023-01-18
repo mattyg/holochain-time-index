@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use hdi::prelude::holo_hash::hash_type::AnyLinkable;
 use hdk::{hash_path::path::Component, prelude::*};
 
 use crate::bfs::find_paths_for_time_span;
@@ -322,19 +323,37 @@ where
                     .collect::<IndexResult<Vec<Vec<Link>>>>()?
                     .into_iter()
                     .flatten()
-                    .map(|link| {
-                        match get(
-                            link.target
-                                .into_entry_hash()
-                                .expect("Could not get entry hash for link target"),
-                            GetOptions::latest(),
-                        )? {
-                            Some(chunk) => Ok(Some(chunk.entry().to_app_option::<T>()?.ok_or(
-                                IndexError::InternalError(
-                                    "Expected element to contain app entry data",
-                                ),
-                            )?)),
-                            None => Ok(None),
+                    .map(|link| {              
+                        match link.target.hash_type() {
+                            AnyLinkable::Entry => {
+                                match get(
+                                    link.target.into_entry_hash().unwrap(),
+                                    GetOptions::latest(),
+                                )? {
+                                    Some(chunk) => Ok(Some(chunk.entry().to_app_option::<T>()?.ok_or(
+                                        IndexError::InternalError(
+                                            "Expected element to contain app entry data",
+                                        ),
+                                    )?)),
+                                    None => Ok(None),
+                                }       
+                            }
+                            AnyLinkable::Action => {
+                                match get(
+                                    link.target.into_action_hash().unwrap(),
+                                    GetOptions::latest(),
+                                )? {
+                                    Some(chunk) => Ok(Some(chunk.entry().to_app_option::<T>()?.ok_or(
+                                        IndexError::InternalError(
+                                            "Expected element to contain app entry data",
+                                        ),
+                                    )?)),
+                                    None => Ok(None),
+                                }   
+                            }
+                            _ => Err(IndexError::InternalError(
+                                    "Expected an ActionHash or EntryHash as link target",
+                                ))                      
                         }
                     })
                     .filter_map(|val| {
