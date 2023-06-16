@@ -243,14 +243,14 @@ pub fn index_entry<T: IndexableEntry, LT: Into<LinkTag>, ILT: Clone, PLT>(
 }
 
 /// Removes a given indexed entry from the time tree
-pub fn remove_index(indexed_entry: EntryHash, index_link_type: impl LinkTypeFilterExt + Clone) -> IndexResult<()> {
+pub fn remove_index(indexed_hash: AnyLinkableHash, index_link_type: impl LinkTypeFilterExt + Clone) -> IndexResult<()> {
     let time_paths =
-        get_links(indexed_entry.clone(), index_link_type.clone(), Some(LinkTag::new("time_path")))?;
+        get_links(indexed_hash.clone(), index_link_type.clone(), Some(LinkTag::new("time_path")))?;
     for time_path in time_paths {
         let path_links = get_links(time_path.target.clone(), index_link_type.clone(), None)?;
         let path_links: Vec<Link> = path_links
             .into_iter()
-            .filter(|link| EntryHash::from(link.target.to_owned()) == indexed_entry)
+            .filter(|link| link.target.to_owned() == indexed_hash)
             .collect();
         for path_link in path_links {
             // debug!(
